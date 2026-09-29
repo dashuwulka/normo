@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Нормальность</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+</head>
+<body>
+<div class="ambient ambient-one"></div>
+<div class="ambient ambient-two"></div>
+<div class="ambient ambient-three"></div>
+<div class="ambient ambient-four"></div>
+
+<main class="app-shell">
+    <header class="topbar">
+        <div class="brand">
+            <h1>Нормальность</h1>
+        </div>
+
+        <div class="header-summary">
+            Система загружает DOCX-документ, сверяет оформление с выбранным профилем требований, формирует отчёт и готовит исправленный файл
+        </div>
+
+        <nav class="icon-menu" aria-label="Справка">
+            <button class="icon-button" type="button" data-modal="aboutModal" title="О системе">i</button>
+            <button class="icon-button" type="button" data-modal="autofixModal" title="Что исправляется">✦</button>
+            <button class="icon-button" type="button" data-modal="profilesModal" title="Профили">▣</button>
+            <button class="icon-button" type="button" data-modal="helpModal" title="Помощь">?</button>
+        </nav>
+    </header>
+
+    {% if error %}
+        <div class="toast toast-error">{{ error }}</div>
+    {% endif %}
+
+    <section class="workspace" aria-live="polite">
+        <div class="screens" id="screens">
+            <section class="screen" data-screen="0">
+                <div class="screen-heading">
+                    <h2>Начало работы</h2>
+                </div>
+
+                <div class="upload-grid">
+                    <article class="panel profile-panel">
+                        <div class="panel-heading">
+                            <h3>Профиль требований</h3>
+                            <p>Выберите встроенный профиль, загрузите сохранённый профиль или подготовьте правила из ГОСТа/методички</p>
+                        </div>
+
+                        <div class="segmented" role="tablist" aria-label="Режим профиля">
+                            <button class="segment active" type="button" data-profile-mode="builtin">Готовый профиль</button>
+                            <button class="segment" type="button" data-profile-mode="method">Методичка/ГОСТ</button>
+                            <button class="segment" type="button" data-profile-mode="json">Сохранённый профиль</button>
+                        </div>
+
+                        <div class="profile-mode active" data-mode="builtin">
+                            <label class="field-label" for="builtinProfile">Встроенный профиль</label>
+                            <select id="builtinProfile" class="control">
+                                <option>ГОСТ Р 7.0.110—2025</option>
+                            </select>
+                        </div>
+
+                        <div class="profile-mode" data-mode="method">
+                            <label class="dropzone compact" for="methodFile" data-drop="methodFile">
+                                <input id="methodFile" type="file" accept=".pdf,.docx">
+                                <span>Перетащите ГОСТ или методичку сюда</span>
+                                <strong>или выберите файл</strong>
+                            </label>
+                        </div>
+
+                        <div class="profile-mode" data-mode="json">
+                            <p class="notice">
+                                Если профиль проверки уже сохранялся раньше, загрузите его — повторно обрабатывать методичку не нужно
+                            </p>
+                            <label class="dropzone compact" for="jsonProfileFile" data-drop="jsonProfileFile">
+                                <input id="jsonProfileFile" name="profile_json" type="file" accept=".json">
+                                <span>Загрузите сохранённый профиль</span>
+                                <strong>Подходит, если профиль уже был сформирован ранее</strong>
+                            </label>
+                            <label class="check-option json-review-option">
+                                <input id="jsonReviewToggle" type="checkbox">
+                                <span>Перед проверкой открыть правила профиля и при необходимости изменить их</span>
+                            </label>
+                        </div>
+                    </article>
+
+                    <article class="panel document-panel">
+                        <div class="panel-heading">
+                            <h3>Документ</h3>
+                            <p>Загрузите DOCX-файл работы, который нужно проверить</p>
+                        </div>
+
+                        <label class="dropzone document-dropzone" for="documentFile" data-drop="documentFile">
+                            <input id="documentFile" name="document" type="file" accept=".docx">
+                            <span>Перетащите документ сюда</span>
+                            <strong>или выберите файл</strong>
+                            <small>Поддерживается формат DOCX</small>
+                        </label>
+
+                        <div class="file-summary" id="documentSummary">
+                        </div>
+                    </article>
+                </div>
+
+                <footer class="action-panel">
+                    <label class="check-option">
+                        <input id="autocorrect" type="checkbox" checked>
+                        <span>Выполнить автоисправление после проверки</span>
+                        <button class="mini-help" type="button" data-tooltip="Автоматически исправляются только безопасные нарушения: поля, интервалы, отступы, часть ошибок заголовков и нумерации, содержательные и спорные правки остаются в отчёте">?</button>
+                    </label>
+
+                    <label class="check-option">
+                        <input id="createReview" type="checkbox" checked>
+                        <span>Создать документ с пометками</span>
+                        <button class="mini-help" type="button" data-tooltip="Документ с пометками показывает найденные нарушения в файле для ручной проверки">?</button>
+                    </label>
+
+                    <div class="main-actions">
+                        <button class="ghost" type="button" id="clearForm">Очистить</button>
+                        <button class="primary" type="button" id="startCheck">Проверить документ</button>
+                    </div>
+                </footer>
+            </section>
+
+            <section class="screen" data-screen="1">
+                <div class="screen-heading with-back">
+                    <button class="back-button" type="button" data-back aria-label="Вернуться">←</button>
+                    <h2>Проверьте профиль требований</h2>
+                    <p>Список правил можно подтвердить, изменить или сохранить для повторного использования</p>
+                </div>
+
+                <div class="rules-layout">
+                    <aside class="rules-sidebar">
+                        <div class="rules-count">
+                            <strong id="rulesCount">0</strong>
+                            <span>правил в профиле</span>
+                        </div>
+                        <div class="filter-pills" id="ruleFilters">
+                            <button class="pill active" type="button" data-filter="all">Все</button>
+                            <button class="pill" type="button" data-filter="page">Страница</button>
+                            <button class="pill" type="button" data-filter="font">Шрифт</button>
+                            <button class="pill" type="button" data-filter="heading">Заголовки</button>
+                            <button class="pill" type="button" data-filter="main_text">Основной текст</button>
+                            <button class="pill" type="button" data-filter="structure">Структура</button>
+                            <button class="pill" type="button" data-filter="recommended">Предупреждения</button>
+                        </div>
+                    </aside>
+
+                    <div class="rules-table-wrap">
+                        <table class="rules-table">
+                            <thead>
+                            <tr>
+                                <th>Раздел</th>
+                                <th>Что проверяется</th>
+                                <th>Значение</th>
+                                <th></th>
+                            </tr>
+                            </thead>
+                            <tbody id="rulesTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <footer class="action-panel">
+                    <button class="ghost icon-only" type="button" data-back aria-label="Вернуться">←</button>
+                    <button class="ghost" type="button" id="downloadProfileJson">Скачать профиль проверки</button>
+                    <button class="primary" type="button" id="saveProfileContinue">Продолжить с этим профилем</button>
+                </footer>
+            </section>
+
+            <section class="screen" data-screen="2">
+                <div class="screen-heading with-back">
+                    <button class="back-button" type="button" id="processingBack" aria-label="Вернуться">←</button>
+                    <h2>Идёт проверка документа</h2>
+                    <p>Система разбирает структуру файла, сверяет параметры с профилем и готовит результат</p>
+                </div>
+
+                <div class="process-panel">
+                    <div class="pulse-orbit" aria-hidden="true"></div>
+                    <ol class="process-list" id="processList">
+                        <li data-step-status="wait">Чтение DOCX-файла</li>
+                        <li data-step-status="wait">Разбор структуры</li>
+                        <li data-step-status="wait">Классификация абзацев</li>
+                        <li data-step-status="wait">Проверка по профилю</li>
+                        <li data-step-status="wait">Формирование отчёта</li>
+                        <li data-step-status="wait">Подготовка файлов для скачивания</li>
+                    </ol>
+                </div>
+            </section>
+
+            <section class="screen results-screen" data-screen="3">
+                <div class="screen-heading with-back">
+                    <button class="back-button" type="button" data-to-screen="0" aria-label="Вернуться">←</button>
+                    <h2>Результаты нормоконтроля</h2>
+                    <p>Проверка завершена, ниже доступен отчёт и файлы для скачивания</p>
+                </div>
+
+                <div class="result-toolbar">
+                    <div class="result-counters">
+                        <div><strong id="totalCount">0</strong><span>всего</span></div>
+                        <div><strong id="errorCount">0</strong><span>ошибок</span></div>
+                        <div><strong id="warningCount">0</strong><span>предупреждений</span></div>
+                    </div>
+                    <button class="primary" type="button" id="openReport">Открыть отчёт</button>
+                </div>
+
+                <div class="result-body">
+                    <aside class="summary-panel">
+                        <h3>Краткая сводка</h3>
+                        <div id="groupSummary" class="group-summary"></div>
+                    </aside>
+                    <div class="download-panel">
+                        <h3>Файлы для скачивания</h3>
+                        <div class="download-actions">
+                            <a class="secondary link-button" id="downloadFixed" href="#" aria-disabled="true">Исправленный DOCX</a>
+                            <a class="secondary link-button" id="downloadReview" href="#" aria-disabled="true">Документ с пометками</a>
+                            <button class="secondary" type="button" id="downloadResultProfile">Профиль проверки</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </section>
+</main>
+
+<dialog class="modal" id="aboutModal">
+    <button class="modal-close" type="button" data-close-modal>×</button>
+    <h2>О системе</h2>
+    <p>Нормальность проверяет DOCX-документы по профилю требований: разбирает структуру, находит нарушения оформления, формирует отчёт и готовит файлы для дальнейшей работы</p>
+</dialog>
+
+<dialog class="modal" id="autofixModal">
+    <button class="modal-close" type="button" data-close-modal>×</button>
+    <h2>Что исправляется автоматически</h2>
+    <ul>
+        <li>поля страницы, если они выходят за допустимый диапазон;</li>
+        <li>абзацные отступы, интервалы и выравнивание основного текста;</li>
+        <li>часть нарушений в заголовках: жирность, интервалы, отрывы, точки;</li>
+        <li>безопасные настройки нумерации и колонтитулов</li>
+    </ul>
+</dialog>
+
+<dialog class="modal" id="profilesModal">
+    <button class="modal-close" type="button" data-close-modal>×</button>
+    <h2>Профили проверки</h2>
+    <p>Профиль проверки содержит набор правил: объект проверки, параметр, оператор, значение, тип замечания и ссылка на раздел источника. Такой подход позволяет подключать ГОСТы, методички кафедр и локальные требования</p>
+</dialog>
+
+<dialog class="modal" id="helpModal">
+    <button class="modal-close" type="button" data-close-modal>×</button>
+    <h2>Как пользоваться</h2>
+    <ol>
+        <li>Загрузите DOCX-документ для проверки</li>
+        <li>Выберите готовый профиль или загрузите сохранённый профиль проверки</li>
+        <li>При необходимости посмотрите и поправьте правила</li>
+        <li>Запустите проверку, откройте отчёт и при необходимости скачайте исправленный файл или документ с пометками</li>
+    </ol>
+</dialog>
+
+<dialog class="modal rule-editor" id="ruleEditor">
+    <button class="modal-close" type="button" data-close-modal>×</button>
+    <h2>Правило профиля</h2>
+    <form id="ruleEditorForm" class="editor-grid">
+        <input type="hidden" id="ruleIndex">
+        <label>Раздел источника<input id="ruleSourceSection" type="text"></label>
+        <label>Что проверяется<input id="ruleTarget" type="text"></label>
+        <label>Параметр оформления<input id="ruleParameter" type="text"></label>
+        <label>Способ проверки<input id="ruleOperator" type="text"></label>
+        <label>Значение<input id="ruleValue" type="text"></label>
+        <label>Единица измерения<input id="ruleUnit" type="text"></label>
+        <label>Тип замечания<input id="ruleModality" type="text"></label>
+        <label class="wide">Описание<textarea id="ruleDescription"></textarea></label>
+        <label class="wide">Исходный текст правила<textarea id="ruleSourceText"></textarea></label>
+    </form>
+    <div class="modal-actions">
+        <button class="primary" type="button" id="saveRule">Сохранить</button>
+        <button class="danger" type="button" id="deleteRule">Удалить правило</button>
+        <button class="ghost" type="button" data-close-modal>Отмена</button>
+    </div>
+</dialog>
+
+<dialog class="modal extraction-modal" id="extractionModal">
+    <button class="modal-close" type="button" data-close-modal>×</button>
+    <h2>Найденные правила</h2>
+    <p id="extractionSummary" class="modal-lead">
+        Проверьте правила, которые система смогла извлечь из методички, и оставьте только те, которые нужно использовать в профиле проверки.
+    </p>
+    <form id="extractionRulesForm">
+        <div id="extractionRuleGroups" class="extraction-rule-groups"></div>
+        <div class="modal-actions">
+            <button class="primary" type="submit" id="confirmExtractedRules">Сохранить выбранные правила</button>
+            <button class="ghost" type="button" data-close-modal>Вернуться</button>
+        </div>
+    </form>
+</dialog>
+
+<dialog class="modal report-modal" id="reportModal">
+    <button class="modal-close" type="button" data-close-modal>×</button>
+    <h2>Отчёт</h2>
+    <iframe id="reportFrame" class="report-frame" title="Отчёт"></iframe>
+</dialog>
+
+<div class="tooltip" id="tooltip" role="tooltip"></div>
+<script id="builtinProfileData" type="application/json">{{ builtin_profile|tojson }}</script>
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,238 @@
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Результат проверки</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background: #f7f7f7;
+            color: #222;
+        }
+
+        .container {
+            max-width: 1180px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 28px 32px;
+            border-radius: 12px;
+            border: 1px solid #ddd;
+        }
+
+        h1 {
+            margin-top: 0;
+            font-size: 26px;
+        }
+
+        h2 {
+            font-size: 20px;
+            margin: 28px 0 8px;
+        }
+
+        .summary,
+        .section-summary,
+        .rule-meta {
+            padding: 12px 14px;
+            background: #f1f1f1;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+
+        .summary {
+            margin-bottom: 22px;
+        }
+
+        .section-summary {
+            margin-bottom: 12px;
+        }
+
+        .success {
+            padding: 14px 18px;
+            background: #eefbee;
+            border: 1px solid #98c998;
+            border-radius: 8px;
+            margin-bottom: 22px;
+        }
+
+        .rule-group {
+            border: 1px solid #d0d0d0;
+            border-radius: 8px;
+            margin: 10px 0;
+            padding: 10px 12px;
+            background: #fff;
+        }
+
+        .rule-group summary {
+            cursor: pointer;
+        }
+
+        .rule-meta {
+            display: grid;
+            gap: 6px;
+            margin-top: 12px;
+        }
+
+        .badge {
+            display: inline-block;
+            margin-left: 8px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .error-badge {
+            background: #ffe8e8;
+            color: #7a1111;
+        }
+
+        .warning-badge {
+            background: #fff5d6;
+            color: #6c4a00;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 18px;
+        }
+
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px 10px;
+            text-align: left;
+            vertical-align: top;
+            font-size: 14px;
+        }
+
+        th {
+            background: #eeeeee;
+        }
+
+        .actions {
+            margin-top: 24px;
+        }
+
+        .actions a {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.45rem;
+            margin-right: 12px;
+            margin-bottom: 10px;
+            padding: 10px 16px;
+            border-radius: 8px;
+            background: #222;
+            color: #fff;
+            text-decoration: none;
+            line-height: 1;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .actions a > svg {
+            width: 1.1em;
+            height: 1.1em;
+            flex: 0 0 auto;
+            display: block;
+        }
+
+        .actions a:hover {
+            background: #444;
+        }
+
+        .back {
+            margin-top: 18px;
+        }
+
+        .back a {
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Результат проверки</h1>
+
+    <div class="summary">
+        Проверяемый файл: <strong>{{ original_name }}</strong><br>
+        Найдено нарушений: <strong>{{ result.violations_count }}</strong><br>
+        Ошибок: <strong>{{ result.errors_count }}</strong><br>
+        Предупреждений: <strong>{{ result.warnings_count }}</strong>
+    </div>
+
+    {% if not result.has_violations %}
+        <div class="success">
+            Нарушений форматирования не найдено.
+        </div>
+    {% else %}
+        {% for section in result.grouped_violations %}
+            <section class="section-group">
+                <h2>Раздел {{ section.source_section }}</h2>
+                <div class="section-summary">
+                    Всего: <strong>{{ section.count }}</strong>,
+                    ошибок: <strong>{{ section.errors_count }}</strong>,
+                    предупреждений: <strong>{{ section.warnings_count }}</strong>
+                </div>
+
+                {% for rule_group in section.rule_groups %}
+                    <details class="rule-group">
+                        <summary>
+                            <strong>{{ rule_group.summary }}</strong>
+                            <span class="badge error-badge">ошибок: {{ rule_group.errors_count }}</span>
+                            <span class="badge warning-badge">предупреждений: {{ rule_group.warnings_count }}</span>
+                        </summary>
+
+                        <div class="rule-meta">
+                            <div><strong>Найдено:</strong> {{ rule_group.actual }}</div>
+                            <div><strong>Требуется:</strong> {{ rule_group.expected }}</div>
+                            <div><strong>Пояснение:</strong> {{ rule_group.message }}</div>
+                        </div>
+
+                        <table>
+                            <thead>
+                            <tr>
+                                <th>№</th>
+                                <th>Тип</th>
+                                <th>Место</th>
+                                <th>Найдено</th>
+                                <th>Требуется</th>
+                                <th>Описание</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for violation in rule_group.violations %}
+                                <tr>
+                                    <td>{{ loop.index }}</td>
+                                    <td>{{ violation.severity }}</td>
+                                    <td>{{ violation.location }}</td>
+                                    <td>{{ violation.actual or "не указано" }}</td>
+                                    <td>{{ violation.expected }}</td>
+                                    <td>{{ violation.message }}</td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </details>
+                {% endfor %}
+            </section>
+        {% endfor %}
+    {% endif %}
+
+    <div class="actions">
+        <a href="/view/report/{{ result.report_path.name }}" target="_blank" rel="noopener">Открыть отчёт</a>
+
+        {% if result.review_docx_path %}
+            <a href="/download/review/{{ result.review_docx_path.name }}">Скачать DOCX с комментариями</a>
+        {% endif %}
+
+        {% if result.fixed_docx_path %}
+            <a href="/download/fixed/{{ result.fixed_docx_path.name }}">Скачать исправленный DOCX</a>
+        {% endif %}
+    </div>
+
+    <div class="back">
+        <a href="/">Проверить другой документ</a>
+    </div>
+</div>
+</body>
+</html>

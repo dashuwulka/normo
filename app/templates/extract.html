@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Извлечение профиля</title>
+    <style>
+        :root {
+            --bg: #f6f8ef;
+            --panel: #ffffff;
+            --text: #1e1e1e;
+            --muted: #68705d;
+            --accent: #263315;
+            --accent-soft: #ecff97;
+            --border: rgba(38, 51, 21, 0.14);
+            --warn: #fff3c4;
+            --bad: #ffe1d9;
+            --info: #e9f4ff;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: var(--bg);
+            color: var(--text);
+            font-family: Inter, Arial, sans-serif;
+        }
+
+        main {
+            width: min(1180px, calc(100vw - 40px));
+            margin: 0 auto;
+            padding: 34px 0 48px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            gap: 24px;
+            align-items: flex-start;
+            margin-bottom: 28px;
+        }
+
+        h1 {
+            margin: 0 0 8px;
+            font-size: 34px;
+            line-height: 1.1;
+        }
+
+        p {
+            margin: 0;
+            color: var(--muted);
+        }
+
+        a {
+            color: var(--accent);
+            font-weight: 700;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.82);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 24px;
+            box-shadow: 0 18px 48px rgba(38, 51, 21, 0.08);
+        }
+
+        .upload-form {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 14px;
+            align-items: end;
+        }
+
+        label {
+            display: grid;
+            gap: 8px;
+            font-weight: 700;
+        }
+
+        input[type="file"] {
+            width: 100%;
+            padding: 16px;
+            border: 1px dashed rgba(38, 51, 21, 0.34);
+            border-radius: 14px;
+            background: rgba(236, 255, 151, 0.25);
+        }
+
+        button,
+        .button {
+            border: 0;
+            border-radius: 999px;
+            background: var(--accent);
+            color: #ffffff;
+            padding: 14px 22px;
+            font-size: 15px;
+            font-weight: 800;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.45rem;
+            line-height: 1;
+            text-align: center;
+            vertical-align: middle;
+            min-height: 46px;
+        }
+
+        button > svg,
+        .button > svg {
+            width: 1.1em;
+            height: 1.1em;
+            flex: 0 0 auto;
+            display: block;
+        }
+
+        .button.secondary {
+            background: var(--accent-soft);
+            color: var(--accent);
+        }
+
+        .message {
+            margin: 18px 0;
+            padding: 14px 16px;
+            border-radius: 14px;
+            background: var(--bad);
+            color: #70301f;
+            font-weight: 700;
+        }
+
+        .result-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 18px;
+            margin: 28px 0 14px;
+        }
+
+        .table-wrap {
+            overflow: auto;
+            max-height: 62vh;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            background: var(--panel);
+        }
+
+        .rule-groups {
+            display: grid;
+            gap: 18px;
+        }
+
+        .rule-group {
+            display: grid;
+            gap: 12px;
+        }
+
+        .rule-group h3 {
+            margin: 0;
+            font-size: 20px;
+        }
+
+        .rule-card {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 14px;
+            padding: 16px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid var(--border);
+        }
+
+        .rule-card.status-needs_review {
+            background: var(--warn);
+        }
+
+        .rule-card.status-conflict,
+        .rule-card.status-unsupported {
+            background: var(--bad);
+        }
+
+        .rule-card input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin-top: 4px;
+        }
+
+        .rule-title {
+            margin: 0 0 8px;
+            font-size: 17px;
+            font-weight: 800;
+            color: var(--accent);
+        }
+
+        .rule-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            min-height: 28px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: rgba(236, 255, 151, 0.65);
+            color: var(--accent);
+            font-size: 13px;
+            font-weight: 800;
+        }
+
+        .source-box {
+            display: grid;
+            gap: 4px;
+            padding: 12px;
+            border-radius: 12px;
+            background: rgba(38, 51, 21, 0.05);
+            color: #3e4537;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 1060px;
+        }
+
+        th,
+        td {
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--border);
+            text-align: left;
+            vertical-align: top;
+            font-size: 14px;
+        }
+
+        th {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            background: #f3ffe3;
+            color: var(--accent);
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+        }
+
+        tr.status-needs_review {
+            background: var(--warn);
+        }
+
+        tr.status-conflict,
+        tr.status-unsupported {
+            background: var(--bad);
+        }
+
+        tr.status-extracted {
+            background: #ffffff;
+        }
+
+        .source {
+            max-width: 360px;
+            color: #3e4537;
+        }
+
+        .status {
+            font-weight: 800;
+        }
+
+        .confirm-bar {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 14px;
+            margin-top: 18px;
+        }
+
+        .success {
+            display: grid;
+            gap: 18px;
+            justify-items: start;
+            background: var(--info);
+        }
+
+        @media (max-width: 760px) {
+            main {
+                width: min(100vw - 24px, 1180px);
+            }
+
+            header,
+            .upload-form,
+            .result-head,
+            .confirm-bar {
+                display: grid;
+            }
+        }
+    </style>
+</head>
+<body>
+<main>
+    <header>
+        <div>
+            <h1>Извлечение профиля требований</h1>
+            <p>Загрузите ГОСТ или методичку: система найдёт кандидаты в правила, а профиль сохранится только после вашего подтверждения</p>
+        </div>
+        <a class="button secondary" href="/">К проверке документа</a>
+    </header>
+
+    <section class="panel">
+        <form class="upload-form" action="/extract" method="post" enctype="multipart/form-data">
+            <label>
+                Нормативный документ DOCX или PDF
+                <input type="file" name="normative_document" accept=".docx,.pdf" required>
+            </label>
+            <button type="submit">Извлечь правила</button>
+        </form>
+    </section>
+
+    {% if error %}
+        <div class="message">{{ error }}</div>
+    {% endif %}
+
+    {% if profile_download_url %}
+        <section class="panel success">
+            <div>
+                <h2>Профиль сохранён</h2>
+                <p>В профиль попало подтверждённых правил: {{ confirmed_count }}</p>
+            </div>
+            <a class="button" href="{{ profile_download_url }}">Скачать профиль проверки</a>
+        </section>
+    {% endif %}
+
+    {% if extraction_done and not candidates %}
+        <section class="panel">
+            <h2>Кандидаты не найдены</h2>
+            <p>Документ обработан, но в нём не удалось найти правила по текущим шаблонам MVP. Попробуйте нормативный DOCX/PDF с явными формулировками вроде “Основной текст должен иметь кегль 14 пт” или “Левое поле 30 мм”.</p>
+        </section>
+    {% endif %}
+
+    {% if candidate_groups %}
+        <section>
+            <div class="result-head">
+                <div>
+                    <h2>Найденные правила</h2>
+                    <p>Проверьте найденные требования и сохраните только те, которые должны попасть в профиль.</p>
+                </div>
+            </div>
+
+            <form action="/extract/confirm" method="post">
+                <input type="hidden" name="extraction_id" value="{{ extraction_id }}">
+                <input type="hidden" name="source_name" value="{{ source_name }}">
+
+                <div class="rule-groups">
+                    {% for group in candidate_groups %}
+                        <section class="panel rule-group">
+                            <h3>{{ group.label }} · {{ group.count }}</h3>
+
+                            {% for candidate in group.rules %}
+                                <article class="rule-card status-{{ candidate.raw_status }}">
+                                    <input
+                                        type="checkbox"
+                                        name="candidate_ids"
+                                        value="{{ candidate.id }}"
+                                        {% if candidate.checked %}checked{% endif %}
+                                        {% if not candidate.can_accept %}disabled{% endif %}
+                                    >
+
+                                    <div>
+                                        <p class="rule-title">{{ candidate.rule_text }}</p>
+                                        <div class="rule-meta">
+                                            <span class="pill">{{ candidate.modality }}</span>
+                                            <span class="pill">{{ candidate.status }}</span>
+                                            <span class="pill">уверенность {{ candidate.confidence }}%</span>
+                                        </div>
+                                    </div>
+                                </article>
+                            {% endfor %}
+                        </section>
+                    {% endfor %}
+                </div>
+
+                <div class="confirm-bar">
+                    <p>Правила, которые система пока не умеет проверить или не смогла уверенно понять, не сохраняются автоматически.</p>
+                    <button type="submit">Сохранить выбранные правила в профиль</button>
+                </div>
+            </form>
+        </section>
+    {% endif %}
+</main>
+</body>
+</html>

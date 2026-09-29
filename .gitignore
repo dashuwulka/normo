@@ -1,0 +1,51 @@
+# Virtual env
+.venv/
+venv/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# Secrets
+.env
+*.pem
+*.key
+secrets.*
+
+# IDE
+.idea/
+.vscode/
+
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs and local DBs
+*.log
+*.sqlite3
+*.db
+
+# Build
+build/
+dist/
+tools/
+node_modules/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Temp / debug / outputs
+outputs/
+tmp_check/
+tmp_list_test*/
+tmp_extracted_profile.json
+~$*
+
+# Archives and PDFs
+*.zip
+*.pdf
