@@ -1,4 +1,3 @@
-"""Helper script to run check_docx_document on uploaded docx + profile pair."""
 import json
 import sys
 import types
